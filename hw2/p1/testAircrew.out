@@ -1,0 +1,18 @@
+Pilot: Paul has operated 4 flights for a total of 40 hours this week
+Available flights: 1
+Available hours: 20
+Attempting to schedule for 0 stop(s) 10 hours flight...
+This crew member can be scheduled
+Done scheduling Paul
+Attendant: Allen has operated 6 flights for a total of 20 hours this week
+Available flights: 2
+Available hours: 40
+Attempting to schedule for 2 stop(s) 15.2 hours flight...
+This crew member should be replaced
+Done scheduling Allen
+TaggedAttendant: Tony has operated 2 flights for a total of 50 hours this week
+Available flights: 6
+Available hours: 10
+Attempting to schedule for 0 stop(s) 16 hours flight...
+This crew member can be scheduled
+Done scheduling Tony
