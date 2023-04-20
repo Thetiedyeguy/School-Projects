@@ -1,0 +1,86 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.  000 020E00  START:	LDS# $E00	;The first five lines are intended to print out a message
+  2.  001 080020  	PSH# PROMPT_LENGTH	;promting the user to enter an array size
+  3.  002 08002A  	PSH# PROMPT	;
+  4.  003 412E05  	JSR PUT_STR	;
+  5.  004 120002  	ADS# 2	;
+  6.  005 412E01  	JSR $E01	;
+  7.  006 200000  	CMA# 0	;The next two lines check to see if the array is of size
+  8.  007 482023  	JEQ END	;zero and if it is jumps to the end to stop the program.
+  9.  008 200015  	CMA# 21	;These two lines make sure that the array size is 20 or less
+ 10.  009 4A2011  	JLT VALUES	;If it is less than twenty it jumps to the VALUES spot.
+ 11.  00A 020E00  	LDS# $E00	;The next six lines print out a statement saying the array
+ 12.  00B 08000D  	PSH# INCORRECT_LENGTH;size they chose is invalid and jumps back to start to get
+ 13.  00C 080035  	PSH# INCORRECT	;a new one.
+ 14.  00D 412E05  	JSR PUT_STR	;
+ 15.  00E 412E06  	JSR PUT_NL	;
+ 16.  00F 120002  	ADS# 2	;
+ 17.  010 402000  	JMP START	;
+ 18.  011 042047  VALUES:	STA N	;Stores the array size in N.
+ 19.  012 012047  	LDX N	;Loads the Xr to be the array size.
+ 20.  013 150001  	SBX# 1	;subtracts one from the Xr so the loop can go from 0 to N-1.
+ 21.  014 412E01  LOOP:	JSR $E01	;Takes in a value and
+ 22.  015 044048  	STA+ ARRAY	;stores it in the ith spot in the array.
+ 23.  016 612014  	SOJ LOOP	;checks if the loop has run n time and if not jumps to LOO.P
+ 24.  017 020E00  	LDS# $E00	;The next five lines prints out the line:
+ 25.  018 080020  	PSH# REVERSE_LENGTH	;The array in reverse order is >>.
+ 26.  019 08003A  	PSH# REVERSE	;
+ 27.  01A 412E05  	JSR PUT_STR	;
+ 28.  01B 412E06  	JSR PUT_NL	;
+ 29.  01C 120002  	ADS# 2	;
+ 30.  01D 010000  	LDX# 0	;Loads Xr to be 0 to keep track of the number printed.
+ 31.  01E 004048  PRINT:	LDA+ ARRAY	;Loads the ACC to be the ith address of the ARRAY.
+ 32.  01F 412E00  	JSR $E00	;Prints the ith address of the ARRAY.
+ 33.  020 602047  	AOC N	;compares XR with N.
+ 34.  021 4A201E  	JLT PRINT	;If Xr is less than n the loop continues.
+ 35.  022 402000  	JMP START	;If the loop is over it jumps back to start to start over.
+ 36.  023 020E00  END:	LDS# $E00	;The next five lines prints out a final goodbye message.
+ 37.  024 080004  	PSH# BYE_LENGTH	;
+ 38.  025 080045  	PSH# BYE	;
+ 39.  026 412E05  	JSR PUT_STR	;
+ 40.  027 412E06  	JSR PUT_NL	;
+ 41.  028 120002  	ADS# 2	;
+ 42.  029 FFFFFF  	HLT		;Stops the program.
+ 43.  02A 456E74  PROMPT:	.CHAR 'Enter Size of array (max 20) >> ', PROMPT_LENGTH	;Beginning prompt
+      02B 657220
+      02C 53697A
+      02D 65206F
+      02E 662061
+      02F 727261
+      030 792028
+      031 6D6178
+      032 203230
+      033 29203E
+      034 3E2020
+ 44.  035 696E76  INCORRECT:	.CHAR 'invalid size!', INCORRECT_LENGTH	;Invalid prompt
+      036 616C69
+      037 642073
+      038 697A65
+      039 212020
+ 45.  03A 546865  REVERSE:	.CHAR 'The array in reverse order is >>', REVERSE_LENGTH	;Reverse prompt
+      03B 206172
+      03C 726179
+      03D 20696E
+      03E 207265
+      03F 766572
+      040 736520
+      041 6F7264
+      042 657220
+      043 697320
+      044 3E3E20
+ 46.  045 627965  BYE:	.CHAR 'bye!', BYE_LENGTH	; final message
+      046 212020
+ 47.              	.EQU PUT_STR, $E05	;Needed for printing messages
+ 48.              	.EQU PUT_NL, $E06	;Needed for printing new lines
+ 49.  047 000000  N:	.WORD 0	;Where the arraysize is stored
+ 50.  048 FFFFFFFFFFFFFFFF  ARRAY:	.BLKW 20	;where the array is stored.
+ 51.              	.END		;End of program.
+
+                     SYMBOL TABLE CONTENTS
+
+000048 = ARRAY           000045 = BYE             000004 = BYE_LENGTH      
+000023 = END             000035 = INCORRECT       00000D = INCORRECT_LENGTH
+000014 = LOOP            000047 = N               00001E = PRINT           
+00002A = PROMPT          000020 = PROMPT_LENGTH   000E06 = PUT_NL          
+000E05 = PUT_STR         00003A = REVERSE         000020 = REVERSE_LENGTH  
+000000 = START           000011 = VALUES          

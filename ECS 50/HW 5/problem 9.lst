@@ -1,0 +1,92 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.              	.EQU MAX_CHARS, 4
+  2.              	.EQU STRING, 3
+  3.              	.EQU ACTUAL, 2
+  4.              
+  5.              	.EQU KBD_CNTL, $000
+  6.              	.EQU KBD_STAT, $000
+  7.              	.EQU KBD_DATA, $001
+  8.              	.EQU CRT_CNTL, $316
+  9.              	.EQU CRT_DATA, $317
+ 10.              
+ 11.              	.EQU FLUSH_BIT, $40
+ 12.              	.EQU NEXT_LINE, $05
+ 13.              
+ 14.              	.EQU BS, $08
+ 15.              	.EQU CR, $0D
+ 16.              	.EQU BEL, $07
+ 17.              
+ 18.  000 08000A  	PSH# 10
+ 19.  001 08003C  	PSH# LETTERS
+ 20.  002 08003B  	PSH# COUNT
+ 21.  003 412005  	JSR GET_STR
+ 22.  004 FFFFFF  	HLT
+ 23.              
+ 24.  005 680000  GET_STR:	BGN# 0	; init. call
+ 25.  006 FFF011  	PSHX		; save registers
+ 26.  007 FFF010  	PSHA
+ 27.  008 010000  	LDX# 0	; initialize counter, string index
+ 28.  009 00003A  	LDA# ':'	; output prompt
+ 29.  00A 712317  	OUTB CRT_DATA
+ 30.  00B 702000  G_LOOP:	INB KBD_STAT	; obtain keyboard character
+ 31.  00C 4B200B  	JGE G_LOOP
+ 32.  00D 702001  	INB KBD_DATA
+ 33.  00E 20000D  	CMA# CR	; test for carriage return
+ 34.  00F 482034  	JEQ G_CR
+ 35.  010 200008  	CMA# BS	; test for backspace
+ 36.  011 482021  	JEQ G_BS
+ 37.  012 20003C  	CMA# '<'	; test for < key
+ 38.  013 48202A  	JEQ G_BEGIN
+ 39.  014 200020  	CMA# ' '	; test for valid data char
+ 40.  015 4A201C  	JLT G_ERROR
+ 41.  016 213004  G_DATA:	CMX ! MAX_CHARS	; a valid data char
+ 42.  017 48201C  	JEQ G_ERROR	; test for buffer full
+ 43.  018 517003  	STC* ! STRING	; store character in buffer
+ 44.  019 110001  	ADX# 1	; increment character count
+ 45.  01A 712317  	OUTB CRT_DATA	; echo character
+ 46.  01B 40200B  	JMP G_LOOP	; loop for next character
+ 47.  01C 000007  G_ERROR:	LDA# BEL	; a user error - ring bell
+ 48.  01D 712317  	OUTB CRT_DATA
+ 49.  01E 000040  	LDA# FLUSH_BIT	; discard any pending keystrokes
+ 50.  01F 712000  	OUTB KBD_CNTL
+ 51.  020 40200B  	JMP G_LOOP	; loop for next character
+ 52.  021 210000  G_BS:	CMX# 0	; a backspace
+ 53.  022 48201C  	JEQ G_ERROR	; test for empty buffer
+ 54.  023 150001  	SBX# 1	; decrement character count
+ 55.  024 712317  	OUTB CRT_DATA	; output BS, SPACE, BS sequence
+ 56.  025 000020  	LDA# ' '
+ 57.  026 712317  	OUTB CRT_DATA
+ 58.  027 000008  	LDA# BS
+ 59.  028 712317  	OUTB CRT_DATA
+ 60.  029 40200B  	JMP G_LOOP	; loop for next character
+ 61.  02A 110002  G_BEGIN:	ADX# 2	; the backspace needs to be done XR + 2 times
+ 62.  02B 210000  LOOP:	CMX# 0	; same code as for the BS
+ 63.  02C 48201C  	JEQ G_ERROR
+ 64.  02D 712317  	OUTB CRT_DATA
+ 65.  02E 000020  	LDA# ' '
+ 66.  02F 712317  	OUTB CRT_DATA
+ 67.  030 000008  	LDA# BS
+ 68.  031 712317  	OUTB CRT_DATA
+ 69.  032 61202B  	SOJ LOOP	; decrements XR and checks if it is equal to zero
+ 70.  033 40200B  	JMP G_LOOP	; loop for next character
+ 71.  034 000005  G_CR:	LDA# NEXT_LINE	; a return - move cursor to next line
+ 72.  035 712316  	OUTB CRT_CNTL
+ 73.  036 057002  	STX* ! ACTUAL	; store actual character count
+ 74.  037 FFF013  	POPA		; restore registers
+ 75.  038 FFF014  	POPX
+ 76.  039 690000  	FIN# 0	; close call
+ 77.  03A FFF040  	RTN
+ 78.  03B 000000  COUNT:	.WORD 0
+ 79.  03C FFFFFFFFFFFFFFFF  LETTERS:	.BLKW 10
+ 80.              	.END
+
+                     SYMBOL TABLE CONTENTS
+
+000002 = ACTUAL          000007 = BEL             000008 = BS              
+00003B = COUNT           00000D = CR              000316 = CRT_CNTL        
+000317 = CRT_DATA        000040 = FLUSH_BIT       000005 = GET_STR         
+00002A = G_BEGIN         000021 = G_BS            000034 = G_CR            
+000016 = G_DATA          00001C = G_ERROR         00000B = G_LOOP          
+000000 = KBD_CNTL        000001 = KBD_DATA        000000 = KBD_STAT        
+00003C = LETTERS         00002B = LOOP            000004 = MAX_CHARS       
+000005 = NEXT_LINE       000003 = STRING          

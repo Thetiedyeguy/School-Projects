@@ -1,0 +1,17 @@
+a)  li $r6, AAA
+b)  lw $r6, AAA($zero)
+c)  lw $r6, AAA($r8)
+d)  lw $r1, AAA($zero)
+    lw $r6, 0($r1)
+e)  lw $r1, AAA($zero)
+    add $r1, $r1, $r8
+    lw $r6, 0($r1)
+f)  addi $r6, $r30, AAA
+g)  lw $r6, AAA($r30)
+h)  add $r1, $r6, $r30
+    lw $r6, AAA($r30)
+i)  lw $r1, AAA($r30)
+    lw $r6, 0($r1)
+j)  lw $r1, AAA($r30)
+    add $r1, $r1, $r8
+    lw $r6, 0($r1)

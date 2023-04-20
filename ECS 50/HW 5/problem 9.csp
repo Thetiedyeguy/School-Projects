@@ -1,0 +1,80 @@
+	.EQU MAX_CHARS, 4
+	.EQU STRING, 3
+	.EQU ACTUAL, 2
+
+	.EQU KBD_CNTL, $000
+	.EQU KBD_STAT, $000
+	.EQU KBD_DATA, $001
+	.EQU CRT_CNTL, $316
+	.EQU CRT_DATA, $317
+
+	.EQU FLUSH_BIT, $40
+	.EQU NEXT_LINE, $05
+
+	.EQU BS, $08
+	.EQU CR, $0D
+	.EQU BEL, $07
+
+	PSH# 10
+	PSH# LETTERS
+	PSH# COUNT
+	JSR GET_STR
+	HLT
+
+GET_STR:	BGN# 0	; init. call
+	PSHX		; save registers
+	PSHA
+	LDX# 0	; initialize counter, string index
+	LDA# ':'	; output prompt
+	OUTB CRT_DATA
+G_LOOP:	INB KBD_STAT	; obtain keyboard character
+	JGE G_LOOP
+	INB KBD_DATA
+	CMA# CR	; test for carriage return
+	JEQ G_CR
+	CMA# BS	; test for backspace
+	JEQ G_BS
+	CMA# '<'	; test for < key
+	JEQ G_BEGIN
+	CMA# ' '	; test for valid data char
+	JLT G_ERROR
+G_DATA:	CMX ! MAX_CHARS	; a valid data char
+	JEQ G_ERROR	; test for buffer full
+	STC* ! STRING	; store character in buffer
+	ADX# 1	; increment character count
+	OUTB CRT_DATA	; echo character
+	JMP G_LOOP	; loop for next character
+G_ERROR:	LDA# BEL	; a user error - ring bell
+	OUTB CRT_DATA
+	LDA# FLUSH_BIT	; discard any pending keystrokes
+	OUTB KBD_CNTL
+	JMP G_LOOP	; loop for next character
+G_BS:	CMX# 0	; a backspace
+	JEQ G_ERROR	; test for empty buffer
+	SBX# 1	; decrement character count
+	OUTB CRT_DATA	; output BS, SPACE, BS sequence
+	LDA# ' '
+	OUTB CRT_DATA
+	LDA# BS
+	OUTB CRT_DATA
+	JMP G_LOOP	; loop for next character
+G_BEGIN:	ADX# 2	; the backspace needs to be done XR + 2 times
+LOOP:	CMX# 0	; same code as for the BS
+	JEQ G_ERROR
+	OUTB CRT_DATA
+	LDA# ' '
+	OUTB CRT_DATA
+	LDA# BS
+	OUTB CRT_DATA
+	SOJ LOOP	; decrements XR and checks if it is equal to zero
+	JMP G_LOOP	; loop for next character
+G_CR:	LDA# NEXT_LINE	; a return - move cursor to next line
+	OUTB CRT_CNTL
+	STX* ! ACTUAL	; store actual character count
+	POPA		; restore registers
+	POPX
+	FIN# 0	; close call
+	RTN
+COUNT:	.WORD 0
+LETTERS:	.BLKW 10
+	.END

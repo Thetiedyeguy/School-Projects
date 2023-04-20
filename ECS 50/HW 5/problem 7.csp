@@ -1,0 +1,140 @@
+	.EQU KBD_CNTL, $000
+	.EQU KBD_DATA, $001
+	.EQU CRT_DATA, $317
+	.EQU INTERRUPT_ENA, $80
+
+LETTER:	.WORD $00
+Main:	LDA# INTERRUPT_ENA	; enables interups
+	LDS# $E00	; set stack top
+	OUTB KBD_CNTL	
+	SIE
+	LDX# 0
+WAIT_LOOP:	LDA STRINGNUM	; waits for interrupts while there are two or less lines
+	CMA# 3
+	JNE WAIT_LOOP
+	PSH# STRING1	; runs PRINT(STRING1)
+	JSR PRINT
+	ADS# 1
+	PSH# STRING2	; runs PRINT(STRING2)
+	JSR PRINT
+	ADS# 1
+	PSH# STRING1	; runs STRCMP(STRING1, STRING2, RESULT)
+	PSH# STRING2
+	PSH# RESULT
+	JSR STRCMP
+	ADS# 3
+	LDA RESULT	; loads and prints the result
+	JSR $E00
+	HLT
+
+	.EQU S1, 4
+	.EQU S2, 3
+	.EQU RETURN_VALUE, 2
+	
+STRCMP:	BGN# 0	; init call and save registers
+	PSHA
+	PSHX
+	LDX# 0
+CMP_LOOP:	LDC* ! S1	; loads the ith character of the first string
+	CMA# $00	; checks if the ith character is null
+	JEQ ONE_EMPTY
+	STA STR1I	; stores the ith character
+	LDC* ! S2	; loads the ith character of the second string
+	CMA# $00	; checks if the ith character is null
+	JEQ TWO_EMPTY
+	CMA STR1I	;checks which is bigger or if they are equal
+	JLT ONEBIGGER
+	CMA STR1I
+	JEQ EQUAL
+	CMA STR1I
+	JGE TWOBIGGER
+ONEBIGGER:	LDA# 1	;sets the result to 1 and ends the protocol
+	STA* ! RETURN_VALUE
+	JMP FINISH
+EQUAL:	ADX# 1
+	JMP CMP_LOOP
+TWOBIGGER:	LDA# 0	;sets the result to -2 and ends the protocol
+	SBA# 2
+	STA* ! RETURN_VALUE
+	JMP FINISH
+ONE_EMPTY:	LDC* ! S2	;checks if the 2nd string is also on null
+	CMA# $00
+	JEQ BOTH_EMPTY
+	LDA# 0	;sets the result to -1 and ends the protocol
+	SBA# 1
+	STA* ! RETURN_VALUE
+	JMP FINISH
+TWO_EMPTY:	LDA# 2	;sets the result to 2 and ends the protocol
+	STA* ! RETURN_VALUE
+	JMP FINISH
+BOTH_EMPTY:	LDA# 0	;sets the result to 0 and ends the protocol
+	STA* ! RETURN_VALUE
+FINISH:	POPA		;end call and return registers
+	POPX
+	FIN# 0
+	RTN
+STR1I:	.WORD 0
+	.EQU STRING, 2
+
+PRINT:	BGN# 0	; begin call and save registers
+	PSHA
+	PSHX
+	LDX# 0
+LOOP:	LDC* ! STRING	; load the ith character
+	ADX# 1	; increments xr
+	CMA# $00	; if the ith character is null ends the loop
+	JEQ END
+	OUTB CRT_DATA	; prints the character and jumps to start of loop
+	JMP LOOP
+END:	SBX# 1
+	JSR NEXT_LINE	; calls NEXT_LINE()
+	POPX
+	POPA
+	FIN# 0	; end call and return registers
+	RTN
+
+NEXT_LINE:	BGN# 0	; begin call and save acc
+	PSHA
+	STX SIZE	; sets the xr to size - xr
+	LDX# 37
+	SBX SIZE
+	LDA# $20	; sets the acc to the ascii for spaces
+MAKE_NL:	OUTB CRT_DATA	; prints a space
+	SOJ MAKE_NL	; decrements xr and continues loop if != 0
+	POPA
+	FIN# 0	; end call and return acc
+	RTN
+
+KBD_ISR:	PSHA		; save acc
+	INB KBD_DATA	; takes in data and checks if it is the final char
+	CMA# $08
+	JEQ NEXT_STRING	; goes to next string if it is final char
+	OUTB CRT_DATA	; shows the user what they are typing
+	STA LETTER	; store the char
+	LDA STRINGNUM	; checks which string is the current one and jumps
+	CMA# 1
+	JEQ FIRST
+	LDA LETTER
+	STC STRING2	; stores the char in string 2
+	JMP RETURN
+FIRST:	LDA LETTER
+	STC STRING1	; stores the char in string 2
+RETURN:	AOC MAX_CHARACTERS	;checks if the string has reach the max chars
+	JEQ NEXT_STRING
+LEAVE:	POPA
+	IRTN
+NEXT_STRING:LDA STRINGNUM	; increases the string counter
+	ADA# 1
+	STA STRINGNUM
+	JSR NEXT_LINE	; goes to the next row
+	LDX# 0	; resets the xr
+	JMP LEAVE
+RESULT:	.WORD 0
+MAX_CHARACTERS:	.WORD 38
+SIZE:	.WORD 0
+STRINGNUM:	.WORD 1
+STRING1: 	.BLKW MAX_CHARACTERS, $00
+STRING2:	.BLKW MAX_CHARACTERS, $00
+	.EQU @,$FF8
+	.WORD KBD_ISR
+	.END

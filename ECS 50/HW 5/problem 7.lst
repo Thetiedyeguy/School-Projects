@@ -1,0 +1,157 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.              	.EQU KBD_CNTL, $000
+  2.              	.EQU KBD_DATA, $001
+  3.              	.EQU CRT_DATA, $317
+  4.              	.EQU INTERRUPT_ENA, $80
+  5.              
+  6.  000 000000  LETTER:	.WORD $00
+  7.  001 000080  Main:	LDA# INTERRUPT_ENA	; enables interups
+  8.  002 020E00  	LDS# $E00	; set stack top
+  9.  003 712000  	OUTB KBD_CNTL	
+ 10.  004 FFF032  	SIE
+ 11.  005 010000  	LDX# 0
+ 12.  006 002078  WAIT_LOOP:	LDA STRINGNUM	; waits for interrupts while there are two or less lines
+ 13.  007 200003  	CMA# 3
+ 14.  008 492006  	JNE WAIT_LOOP
+ 15.  009 080079  	PSH# STRING1	; runs PRINT(STRING1)
+ 16.  00A 412042  	JSR PRINT
+ 17.  00B 120001  	ADS# 1
+ 18.  00C 0800EF  	PSH# STRING2	; runs PRINT(STRING2)
+ 19.  00D 412042  	JSR PRINT
+ 20.  00E 120001  	ADS# 1
+ 21.  00F 080079  	PSH# STRING1	; runs STRCMP(STRING1, STRING2, RESULT)
+ 22.  010 0800EF  	PSH# STRING2
+ 23.  011 080075  	PSH# RESULT
+ 24.  012 412017  	JSR STRCMP
+ 25.  013 120003  	ADS# 3
+ 26.  014 002075  	LDA RESULT	; loads and prints the result
+ 27.  015 412E00  	JSR $E00
+ 28.  016 FFFFFF  	HLT
+ 29.              
+ 30.              	.EQU S1, 4
+ 31.              	.EQU S2, 3
+ 32.              	.EQU RETURN_VALUE, 2
+ 33.              	
+ 34.  017 680000  STRCMP:	BGN# 0	; init call and save registers
+ 35.  018 FFF010  	PSHA
+ 36.  019 FFF011  	PSHX
+ 37.  01A 010000  	LDX# 0
+ 38.  01B 507004  CMP_LOOP:	LDC* ! S1	; loads the ith character of the first string
+ 39.  01C 200000  	CMA# $00	; checks if the ith character is null
+ 40.  01D 482031  	JEQ ONE_EMPTY
+ 41.  01E 042041  	STA STR1I	; stores the ith character
+ 42.  01F 507003  	LDC* ! S2	; loads the ith character of the second string
+ 43.  020 200000  	CMA# $00	; checks if the ith character is null
+ 44.  021 482038  	JEQ TWO_EMPTY
+ 45.  022 202041  	CMA STR1I	;checks which is bigger or if they are equal
+ 46.  023 4A2028  	JLT ONEBIGGER
+ 47.  024 202041  	CMA STR1I
+ 48.  025 48202B  	JEQ EQUAL
+ 49.  026 202041  	CMA STR1I
+ 50.  027 4B202D  	JGE TWOBIGGER
+ 51.  028 000001  ONEBIGGER:	LDA# 1	;sets the result to 1 and ends the protocol
+ 52.  029 047002  	STA* ! RETURN_VALUE
+ 53.  02A 40203D  	JMP FINISH
+ 54.  02B 110001  EQUAL:	ADX# 1
+ 55.  02C 40201B  	JMP CMP_LOOP
+ 56.  02D 000000  TWOBIGGER:	LDA# 0	;sets the result to -2 and ends the protocol
+ 57.  02E 140002  	SBA# 2
+ 58.  02F 047002  	STA* ! RETURN_VALUE
+ 59.  030 40203D  	JMP FINISH
+ 60.  031 507003  ONE_EMPTY:	LDC* ! S2	;checks if the 2nd string is also on null
+ 61.  032 200000  	CMA# $00
+ 62.  033 48203B  	JEQ BOTH_EMPTY
+ 63.  034 000000  	LDA# 0	;sets the result to -1 and ends the protocol
+ 64.  035 140001  	SBA# 1
+ 65.  036 047002  	STA* ! RETURN_VALUE
+ 66.  037 40203D  	JMP FINISH
+ 67.  038 000002  TWO_EMPTY:	LDA# 2	;sets the result to 2 and ends the protocol
+ 68.  039 047002  	STA* ! RETURN_VALUE
+ 69.  03A 40203D  	JMP FINISH
+ 70.  03B 000000  BOTH_EMPTY:	LDA# 0	;sets the result to 0 and ends the protocol
+ 71.  03C 047002  	STA* ! RETURN_VALUE
+ 72.  03D FFF013  FINISH:	POPA		;end call and return registers
+ 73.  03E FFF014  	POPX
+ 74.  03F 690000  	FIN# 0
+ 75.  040 FFF040  	RTN
+ 76.  041 000000  STR1I:	.WORD 0
+ 77.              	.EQU STRING, 2
+ 78.              
+ 79.  042 680000  PRINT:	BGN# 0	; begin call and save registers
+ 80.  043 FFF010  	PSHA
+ 81.  044 FFF011  	PSHX
+ 82.  045 010000  	LDX# 0
+ 83.  046 507002  LOOP:	LDC* ! STRING	; load the ith character
+ 84.  047 110001  	ADX# 1	; increments xr
+ 85.  048 200000  	CMA# $00	; if the ith character is null ends the loop
+ 86.  049 48204C  	JEQ END
+ 87.  04A 712317  	OUTB CRT_DATA	; prints the character and jumps to start of loop
+ 88.  04B 402046  	JMP LOOP
+ 89.  04C 150001  END:	SBX# 1
+ 90.  04D 412052  	JSR NEXT_LINE	; calls NEXT_LINE()
+ 91.  04E FFF014  	POPX
+ 92.  04F FFF013  	POPA
+ 93.  050 690000  	FIN# 0	; end call and return registers
+ 94.  051 FFF040  	RTN
+ 95.              
+ 96.  052 680000  NEXT_LINE:	BGN# 0	; begin call and save acc
+ 97.  053 FFF010  	PSHA
+ 98.  054 052077  	STX SIZE	; sets the xr to size - xr
+ 99.  055 010025  	LDX# 37
+100.  056 152077  	SBX SIZE
+101.  057 000020  	LDA# $20	; sets the acc to the ascii for spaces
+102.  058 712317  MAKE_NL:	OUTB CRT_DATA	; prints a space
+103.  059 612058  	SOJ MAKE_NL	; decrements xr and continues loop if != 0
+104.  05A FFF013  	POPA
+105.  05B 690000  	FIN# 0	; end call and return acc
+106.  05C FFF040  	RTN
+107.              
+108.  05D FFF010  KBD_ISR:	PSHA		; save acc
+109.  05E 702001  	INB KBD_DATA	; takes in data and checks if it is the final char
+110.  05F 200008  	CMA# $08
+111.  060 48206F  	JEQ NEXT_STRING	; goes to next string if it is final char
+112.  061 712317  	OUTB CRT_DATA	; shows the user what they are typing
+113.  062 042000  	STA LETTER	; store the char
+114.  063 002078  	LDA STRINGNUM	; checks which string is the current one and jumps
+115.  064 200001  	CMA# 1
+116.  065 482069  	JEQ FIRST
+117.  066 002000  	LDA LETTER
+118.  067 5120EF  	STC STRING2	; stores the char in string 2
+119.  068 40206B  	JMP RETURN
+120.  069 002000  FIRST:	LDA LETTER
+121.  06A 512079  	STC STRING1	; stores the char in string 2
+122.  06B 602076  RETURN:	AOC MAX_CHARACTERS	;checks if the string has reach the max chars
+123.  06C 48206F  	JEQ NEXT_STRING
+124.  06D FFF013  LEAVE:	POPA
+125.  06E FFF041  	IRTN
+126.  06F 002078  NEXT_STRING:LDA STRINGNUM	; increases the string counter
+127.  070 100001  	ADA# 1
+128.  071 042078  	STA STRINGNUM
+129.  072 412052  	JSR NEXT_LINE	; goes to the next row
+130.  073 010000  	LDX# 0	; resets the xr
+131.  074 40206D  	JMP LEAVE
+132.  075 000000  RESULT:	.WORD 0
+133.  076 000026  MAX_CHARACTERS:	.WORD 38
+134.  077 000000  SIZE:	.WORD 0
+135.  078 000001  STRINGNUM:	.WORD 1
+136.  079 000000  STRING1: 	.BLKW MAX_CHARACTERS, $00
+137.  0EF 000000  STRING2:	.BLKW MAX_CHARACTERS, $00
+138.              	.EQU @,$FF8
+139.  FF8 00005D  	.WORD KBD_ISR
+140.              	.END
+
+                     SYMBOL TABLE CONTENTS
+
+00003B = BOTH_EMPTY      00001B = CMP_LOOP        000317 = CRT_DATA        
+00004C = END             00002B = EQUAL           00003D = FINISH          
+000069 = FIRST           000080 = INTERRUPT_ENA   000000 = KBD_CNTL        
+000001 = KBD_DATA        00005D = KBD_ISR         00006D = LEAVE           
+000000 = LETTER          000046 = LOOP            000001 = MAIN            
+000058 = MAKE_NL         000076 = MAX_CHARACTERS  000052 = NEXT_LINE       
+00006F = NEXT_STRING     000028 = ONEBIGGER       000031 = ONE_EMPTY       
+000042 = PRINT           000075 = RESULT          00006B = RETURN          
+000002 = RETURN_VALUE    000004 = S1              000003 = S2              
+000077 = SIZE            000041 = STR1I           000017 = STRCMP          
+000002 = STRING          000079 = STRING1         0000EF = STRING2         
+000078 = STRINGNUM       00002D = TWOBIGGER       000038 = TWO_EMPTY       
+000006 = WAIT_LOOP       

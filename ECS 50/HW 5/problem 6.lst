@@ -1,0 +1,26 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.              	.EQU KBD_CNTL, $000
+  2.              	.EQU KBD_DATA, $001
+  3.              	.EQU CRT_DATA, $317
+  4.              	.EQU INTERRUPT_ENA, $80
+  5.              
+  6.  000 000080  Main:	LDA# INTERRUPT_ENA	; enables interrups
+  7.  001 712000  	OUTB KBD_CNTL
+  8.  002 FFF032  	SIE
+  9.              
+ 10.  003 402003  WAIT_LOOP:	JMP WAIT_LOOP	; continously loops until interrupted
+ 11.              
+ 12.  004 702001  KBD_ISR:	INB KBD_DATA	; reads in the character
+ 13.  005 100002  	ADA# 2	; adds two to the ascii code
+ 14.  006 712317  	OUTB CRT_DATA	; prints out the new character
+ 15.  007 FFFFFF  INVALID:	HLT
+ 16.              
+ 17.              	.EQU @,$FF8
+ 18.  FF8 000004  	.WORD KBD_ISR
+ 19.              	.END
+
+                     SYMBOL TABLE CONTENTS
+
+000317 = CRT_DATA        000080 = INTERRUPT_ENA   000007 = INVALID         
+000000 = KBD_CNTL        000001 = KBD_DATA        000004 = KBD_ISR         
+000000 = MAIN            000003 = WAIT_LOOP       

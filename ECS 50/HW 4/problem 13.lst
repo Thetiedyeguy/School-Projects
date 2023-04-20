@@ -1,0 +1,138 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.  000 020E00  	LDS# $E00	;First six lines print out a welcome message
+  2.  001 08001D  	PSH# WELCOME_LENGTH	;
+  3.  002 080053  	PSH# WELCOME	;
+  4.  003 412E05  	JSR PUT_STR	;
+  5.  004 412E06  	JSR PUT_NL	;
+  6.  005 120002  	ADS# 2	;
+  7.  006 08206F  	PSH ARRAY	;Next three lines push the parameters for load onto the
+  8.  007 08206D  	PSH N	;stack
+  9.  008 08006C  	PSH# N_LIMIT	;
+ 10.  009 412017  	JSR LOAD	;Runs the load subroutine
+ 11.  00A 120003  	ADS# 3	;Erases the parameters from the stack
+ 12.  00B 010000  	LDX# 0	;loads Xr to be 0
+ 13.  00C 05206E  	STX MINIMUM	;Stores the Xr to be used as a parameter
+ 14.  00D 08206F  	PSH ARRAY	;Pushes the three parameters onto the stack
+ 15.  00E 08006E  	PSH# MINIMUM	;
+ 16.  00F 08006D  	PSH# N	;
+ 17.  010 412039  	JSR MIN	;Runs the Min subroutine
+ 18.  011 120003  	ADS# 3	;Erases the parameters from the stack
+ 19.  012 08206F  	PSH ARRAY	;Pushes the two parmeters onto the stack
+ 20.  013 08206D  	PSH N	;
+ 21.  014 41202D  	JSR PRINT	;Runs the Print Subroutine
+ 22.  015 120002  	ADS# 2	;Erases the parameters
+ 23.  016 FFFFFF  	HLT		;Stops the program
+ 24.              	.EQU AMOUNT, 3	;Sets the Formal parameters
+ 25.              	.EQU AMOUNT_LIMIT, 2	;
+ 26.              	.EQU LIST, 4	;
+ 27.  017 680000  LOAD:	BGN# 0	;Begins the subroutine
+ 28.  018 FFF010  	PSHA		;Stores the ACC and Xr on the stack
+ 29.  019 FFF011  	PSHX		;
+ 30.  01A 08001C  GET_N:	PSH# N_PROMPT_LENGTH	;Prints out a message prompting the user for the array size
+ 31.  01B 08005D  	PSH# N_PROMPT	;
+ 32.  01C 412E05  	JSR PUT_STR	;
+ 33.  01D 120002  	ADS# 2	;
+ 34.  01E 412E01  	JSR $E01	;Takes user input into the ACC
+ 35.  01F 200001  	CMA# 1	;compares the input to 1
+ 36.  020 4A201A  	JLT GET_N	;If  the input is less than one it gets a new one
+ 37.  021 207002  	CMA* ! AMOUNT_LIMIT	;If the input is greater than what is allowed it gets a new
+ 38.  022 4B201A  	JGE GET_N	;one
+ 39.  023 047003  	STA* ! AMOUNT	;Stores the array size in the parameter AMOUNT
+ 40.  024 017003  	LDX* ! AMOUNT	;Loads the XR to be the array size
+ 41.  025 150001  	SBX# 1	;subtracts one from the Xr to allow the loop to run proper
+ 42.  026 412E01  NEXT_INT:	JSR $E01	;Takes in an input
+ 43.  027 049004  	STA& ! LIST	;stores that input in list[Xr]
+ 44.  028 612026  	SOJ NEXT_INT	;checks is the loop has run n times and jumps if not
+ 45.  029 FFF014  	POPX		;Return the values of the ACC and Xr from the stack
+ 46.  02A FFF013  	POPA		;
+ 47.  02B 690000  	FIN# 0	;Ends the subroutine
+ 48.  02C FFF040  	RTN		;
+ 49.              	.EQU NUMBERS, 3	;Sets the fromal parameters for the subroutine
+ 50.              	.EQU NUMBER_AMOUNT, 2;
+ 51.  02D 680000  PRINT:	BGN# 0	;Starts the subroutine
+ 52.  02E FFF010  	PSHA		;pushes the ACC and XR onto the stack to save their values
+ 53.  02F FFF011  	PSHX		;
+ 54.  030 017002  	LDX* ! NUMBER_AMOUNT	;loads the XR to be the array size
+ 55.  031 150001  	SBX# 1	;subtracts one from XR for the loop
+ 56.  032 009003  PRINT_NEXT:	LDA& ! NUMBERS	;Loads the ACC to be array[XR]
+ 57.  033 412E00  	JSR $E00	;prints out the ACC
+ 58.  034 612032  	SOJ PRINT_NEXT	;compares the XR to zero and jumps to beggining of loop
+ 59.  035 FFF014  	POPX		;Returns the value of the ACC and XR
+ 60.  036 FFF013  	POPA		;
+ 61.  037 690000  	FIN# 0	;Ends the subroutine
+ 62.  038 FFF040  	RTN		;
+ 63.              	.EQU DATA, 4	;Sets the formal parameters
+ 64.              	.EQU BEGIN, 3	;
+ 65.              	.EQU END, 2	;
+ 66.  039 680000  MIN:	BGN# 0	;Begins the subroutine
+ 67.  03A FFF010  	PSHA		;Stores the ACC and XR
+ 68.  03B FFF011  	PSHX		;
+ 69.  03C 017003  	LDX* ! BEGIN	;Loads XR to be the value stored in the BEGIN param
+ 70.  03D 007002  	LDA* ! END	;Loads ACC to be the value stored in the END param
+ 71.  03E 042067  	STA UPPER	;Stores the ACC\END param in UPPER
+ 72.  03F 009004  	LDA& ! DATA	;Loads the ACC to be DATA[XR]
+ 73.  040 04206A  	STA SMALLEST	;stores the ACC in SMALLEST
+ 74.  041 009004  WHILE:	LDA& ! DATA	;Loads the ACC to be DATA[XR]
+ 75.  042 20206A  	CMA SMALLEST	;Compares the ACC to the current smallest
+ 76.  043 4B2046  	JGE LOOP_CHECK	;jumps to LOOP_CHECK if the ACC is not the smallest
+ 77.  044 04206A  	STA SMALLEST	;Stores the ACC and XR if the current ACC is the smallest
+ 78.  045 05206B  	STX SMALLEST_X	;so far
+ 79.  046 602067  LOOP_CHECK:	AOC UPPER	;Checks if the XR++ is equal to UPPER otherwise the loop
+ 80.  047 4A2041  	JLT WHILE	;continues
+ 81.  048 017003  	LDX* ! BEGIN	;Load XR to be the first available value
+ 82.  049 009004  	LDA& ! DATA	;loads the ACC to be the first available value in DATA
+ 83.  04A 01206B  	LDX SMALLEST_X	;Loads the XR to be the one matching to the smalles data
+ 84.  04B 049004  	STA& ! DATA	;Stores the first available data value in smallest spot
+ 85.  04C 017003  	LDX* ! BEGIN	;loads X to be the first available value
+ 86.  04D 00206A  	LDA SMALLEST	;Loads ACC to be the smallest value
+ 87.  04E 049004  	STA& ! DATA	;stores the ACC in the first available spot
+ 88.  04F FFF014  	POPX		;Return the values of X and the ACC
+ 89.  050 FFF013  	POPA		;
+ 90.  051 690000  	FIN# 0	;Stop the subroutine
+ 91.  052 FFF040  	RTN		;
+ 92.  053 2A2A2A  WELCOME:	.CHAR '*** Welcome to the SORTER ***', WELCOME_LENGTH;Welcome message
+      054 205765
+      055 6C636F
+      056 6D6520
+      057 746F20
+      058 746865
+      059 20534F
+      05A 525445
+      05B 52202A
+      05C 2A2A20
+ 93.  05D 456E74  N_PROMPT:	.CHAR 'Enter the number of elements', N_PROMPT_LENGTH;Prompt message
+      05E 657220
+      05F 746865
+      060 206E75
+      061 6D6265
+      062 72206F
+      063 662065
+      064 6C656D
+      065 656E74
+      066 732020
+ 94.              	.EQU PUT_STR, $E05	;Values used to print strings
+ 95.              	.EQU PUT_NL, $E06	;
+ 96.  067 000000  UPPER:	.WORD 0	;
+ 97.  068 000000  EMPTY:	.WORD 0	;
+ 98.  069 000000  EMPTY2:	.WORD 0	;
+ 99.  06A 000000  SMALLEST:	.WORD 0	;
+100.  06B 000000  SMALLEST_X:	.WORD 0	;
+101.  06C 00000B  N_LIMIT:	.WORD 11	;
+102.  06D 000000  N:	.WORD 0	;
+103.  06E 000000  MINIMUM:	.WORD $000	;
+104.  06F FFFFFFFFFFFFFFFF  ARRAY:	.BLKW 10	;
+105.              	.END		;
+
+                     SYMBOL TABLE CONTENTS
+
+000003 = AMOUNT          000002 = AMOUNT_LIMIT    00006F = ARRAY           
+000003 = BEGIN           000004 = DATA            000068 = EMPTY           
+000069 = EMPTY2          000002 = END             00001A = GET_N           
+000004 = LIST            000017 = LOAD            000046 = LOOP_CHECK      
+000039 = MIN             00006E = MINIMUM         00006D = N               
+000026 = NEXT_INT        000003 = NUMBERS         000002 = NUMBER_AMOUNT   
+00006C = N_LIMIT         00005D = N_PROMPT        00001C = N_PROMPT_LENGTH 
+00002D = PRINT           000032 = PRINT_NEXT      000E06 = PUT_NL          
+000E05 = PUT_STR         00006A = SMALLEST        00006B = SMALLEST_X      
+000067 = UPPER           000053 = WELCOME         00001D = WELCOME_LENGTH  
+000041 = WHILE           

@@ -1,0 +1,12 @@
+        LDA     $008
+        CMA     $009
+        JLT     $006
+        LDA     $009
+        STA     $00A
+        JMP     $007
+        STA     $00A
+        HLT
+X:      .WORD   15
+Y:      .WORD   25
+R:      .WORD   0
+        .END

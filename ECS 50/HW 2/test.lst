@@ -1,0 +1,17 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.  000 002008          LDA     $008
+  2.  001 202009          CMA     $009
+  3.  002 4A2006          JLT     $006
+  4.  003 002009          LDA     $009
+  5.  004 04200A          STA     $00A
+  6.  005 402007          JMP     $007
+  7.  006 04200A          STA     $00A
+  8.  007 FFFFFF          HLT
+  9.  008 00000F  X:      .WORD   15
+ 10.  009 000019  Y:      .WORD   25
+ 11.  00A 000000  R:      .WORD   0
+ 12.                      .END
+
+                     SYMBOL TABLE CONTENTS
+
+00000A = R               000008 = X               000009 = Y               

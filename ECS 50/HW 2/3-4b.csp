@@ -1,0 +1,7 @@
+LDA# $123 //dad
+STA $007
+INC $007
+CMA $008
+AND $006
+DEC $007
+HLT

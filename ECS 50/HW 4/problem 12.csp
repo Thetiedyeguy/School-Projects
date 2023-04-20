@@ -1,0 +1,51 @@
+START:	LDS# $E00	;The first five lines are intended to print out a message
+	PSH# PROMPT_LENGTH	;promting the user to enter an array size
+	PSH# PROMPT	;
+	JSR PUT_STR	;
+	ADS# 2	;
+	JSR $E01	;
+	CMA# 0	;The next two lines check to see if the array is of size
+	JEQ END	;zero and if it is jumps to the end to stop the program.
+	CMA# 21	;These two lines make sure that the array size is 20 or less
+	JLT VALUES	;If it is less than twenty it jumps to the VALUES spot.
+	LDS# $E00	;The next six lines print out a statement saying the array
+	PSH# INCORRECT_LENGTH;size they chose is invalid and jumps back to start to get
+	PSH# INCORRECT	;a new one.
+	JSR PUT_STR	;
+	JSR PUT_NL	;
+	ADS# 2	;
+	JMP START	;
+VALUES:	STA N	;Stores the array size in N.
+	LDX N	;Loads the Xr to be the array size.
+	SBX# 1	;subtracts one from the Xr so the loop can go from 0 to N-1.
+LOOP:	JSR $E01	;Takes in a value and
+	STA+ ARRAY	;stores it in the ith spot in the array.
+	SOJ LOOP	;checks if the loop has run n time and if not jumps to LOO.P
+	LDS# $E00	;The next five lines prints out the line:
+	PSH# REVERSE_LENGTH	;The array in reverse order is >>.
+	PSH# REVERSE	;
+	JSR PUT_STR	;
+	JSR PUT_NL	;
+	ADS# 2	;
+	LDX# 0	;Loads Xr to be 0 to keep track of the number printed.
+PRINT:	LDA+ ARRAY	;Loads the ACC to be the ith address of the ARRAY.
+	JSR $E00	;Prints the ith address of the ARRAY.
+	AOC N	;compares XR with N.
+	JLT PRINT	;If Xr is less than n the loop continues.
+	JMP START	;If the loop is over it jumps back to start to start over.
+END:	LDS# $E00	;The next five lines prints out a final goodbye message.
+	PSH# BYE_LENGTH	;
+	PSH# BYE	;
+	JSR PUT_STR	;
+	JSR PUT_NL	;
+	ADS# 2	;
+	HLT		;Stops the program.
+PROMPT:	.CHAR 'Enter Size of array (max 20) >> ', PROMPT_LENGTH	;Beginning prompt
+INCORRECT:	.CHAR 'invalid size!', INCORRECT_LENGTH	;Invalid prompt
+REVERSE:	.CHAR 'The array in reverse order is >>', REVERSE_LENGTH	;Reverse prompt
+BYE:	.CHAR 'bye!', BYE_LENGTH	; final message
+	.EQU PUT_STR, $E05	;Needed for printing messages
+	.EQU PUT_NL, $E06	;Needed for printing new lines
+N:	.WORD 0	;Where the arraysize is stored
+ARRAY:	.BLKW 20	;where the array is stored.
+	.END		;End of program.

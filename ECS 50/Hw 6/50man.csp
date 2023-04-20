@@ -1,0 +1,593 @@
+ .EQU KBD_CNTL, 	$000 ;keyboard setup
+	.EQU KBD_STAT, 	$000 ;keyboard setup
+	.EQU KBD_DATA, 	$001
+	.EQU KBD_FLUSH, 	$40
+	.EQU TIM_CNTL, $030 ;timer setup
+	.EQU TIM_STAT, $030
+	.EQU TIM_VALUE, $031
+	.EQU TIM_COUNT, $034
+	.EQU INTERRUPT_ENA, $80 ;interrupt setup
+	.EQU INTERRUPT_DIS,		 $00
+	.EQU RESET_READY_BIT, $40
+	.EQU START_AFTER_LOAD, $10
+	.EQU ENABLE_RESET_AND_START, $D0
+	.EQU ENABLE_AND_RESET, $C0
+
+	.EQU CRT_BUFFER, $100
+	.EQU BOTTOM_RIGHT, $313 ;board setup
+	.EQU CRT_XREG, $314
+	.EQU CRT_YREG, $315
+	.EQU CRT_CNTL, $316
+	.EQU CRT_DATA, $317
+	.EQU CRT_ROWS, $0E
+	.EQU CRT_COLS, $26
+	.EQU CLEAR_DISPLAY, $01 ;clearing
+	.EQU HOME,		$04
+
+	.EQU PUT_NUM, $E00 ; MINI_OS JSRS
+	.EQU GET_NUM, $E01
+	.EQU PUT_STR, $E05
+	.EQU PUT_NL, $E06
+	.EQU PUT_NUM2, $E07
+	.EQU PUT_CHR, $E08
+	.EQU LEFT,	$68
+	.EQU RIGHT,	$6C
+	.EQU UP,	$6A
+	.EQU DOWN,	$6B
+	.EQU ENEMY_CHAR,	$A4 ;enemy symbol
+	.EQU PLAYER_UP,	$5E
+	.EQU PLAYER_LEFT,	$3C
+	.EQU PLAYER_RIGHT,	$3E
+	.EQU PLAYER_DOWN,	$76
+	.EQU EXPLOSION,	$2A ;explosion character
+	.EQU EMPTY,	$20 ;empty spot is a space
+	.EQU OLD_MAZE_WALL,	$7C ;maze wall code
+	.EQU OLD_MAZE_FLOOR,	$5F ;maze floor code
+	.EQU PELLETS,	$B0
+	.EQU OLD_PELLETS,	$2E
+	.EQU MAZE_WALL,	$A6
+	.EQU MAZE_FLOOR,	$D7
+
+	LDS# $E00 ; initiate the stack
+	LDA# INTERRUPT_ENA ; enable interrupts for the keyboard
+	OUTB KBD_CNTL
+	CIE ; makes sure that interrupts don’t interrupt the beginning of the program
+	PSH# WALL_STR_LENGTH
+	PSH# WALL_STR ;wall characters
+	JSR PUT_STR
+	ADS# 2
+	PSH# OLD_PELLETS ; switch out the old pellets character
+	PSH# PELLETS
+	JSR CONVERT
+	ADS# 2
+	PSH# OLD_MAZE_WALL ; switch out the old wall character
+	PSH# MAZE_WALL
+	JSR CONVERT
+	ADS# 2
+	PSH# OLD_MAZE_FLOOR ; switch out the old floor character
+	PSH# MAZE_FLOOR
+	JSR CONVERT
+	ADS# 2
+	JSR SHOW_ENEMS ;enemies spawn
+	PSH# PLAYER_DOWN
+	JSR SHOW_CHAR ;make player show
+	ADS# 1
+	LDA DELAY ; set the amount of time between enemy movements
+	OUTW TIM_VALUE
+	LDA# ENABLE_RESET_AND_START ; enable timer interrupts
+	OUTB TIM_CNTL
+	SIE ; set the interrupt flag
+MAINLOOP:	NOP
+	JNE MAINLOOP ;do nothing until interrupts
+	HLT
+
+	.EQU OLD_CHAR, 3
+	.EQU NEW_CHAR, 2
+
+CONVERT:	BGN# 0 ; replaces the original template characters with extended ascii character
+	PSHA
+	PSHX
+	LDX# 0
+CON_LOOP:	INB+ $100 ; checks if the character is a match with the old one
+	CMA ! OLD_CHAR
+	JNE NEXT_CHAR
+	LDA ! NEW_CHAR ; prints out the replacement
+	OUTB+ $100
+NEXT_CHAR:	AOC# $200
+	JNE CON_LOOP
+	POPX
+	POPA
+	FIN# 0
+	RTN
+
+
+TIMERISR:	PSHA ;timer procedure
+	PSHX
+	INC TIMER ;timer step
+	LDA# 0
+	LDX# 0
+	CMA ISOVER ;check if game is over, timer stops when game stops
+	JEQ MOVE_LOOP ;move on each timer step
+	JSR DEATH_ANIM ;go to death animation if game is over
+MOVE_LOOP:	LDA+ E1Y ;move on y axis
+	MUL# 38
+	ADA+ E1X ;move enemy on x axis
+	STA CURRENTLOC ;store enemy location
+	LDA# EMPTY ;make sure enemy leaves behind an empty space
+	PSHX
+	LDX CURRENTLOC
+	OUTB+ $100 ;output at new position
+REROLL:	LDA SEED ;go back into loop if enemy hits maze
+	mul# 2779
+	ada# 1997
+	mod# 2049
+	sta SEED ;random direction for every movement
+	mod# 4
+	CMA# 0
+	JNE CHECK1
+	LDX CURRENTLOC
+	SBX# 38
+	INB+ $100
+	CMA# MAZE_WALL ;prevent collision with walls
+	JEQ REROLL
+	CMA# MAZE_FLOOR ;prevent collision with floors
+	JEQ REROLL
+	CMA# PLAYER_UP
+	JNE CHECK_L0
+	JSR GAME_OVER
+CHECK_L0:	CMA# PLAYER_LEFT ;one multiple checks to make sure game ends on collision
+	JNE CHECK_R0
+	JSR GAME_OVER
+CHECK_R0:	CMA# PLAYER_RIGHT
+	JNE CHECK_D0
+	JSR GAME_OVER
+CHECK_D0:	CMA# PLAYER_DOWN
+	JNE DONE_C0
+	JSR GAME_OVER
+DONE_C0:	STX CURRENTLOC ; stores the new location
+	POPX ; Stores the new x value
+	DEC+ E1Y
+	PSHX
+	JMP SUCCESS ;movement successful, no reroll
+CHECK1:	CMA# 1
+	JNE CHECK2
+	LDX CURRENTLOC
+	ADX# 1
+	INB+ $100
+	CMA# MAZE_WALL ; checks wall collision
+	JEQ REROLL
+	CMA# MAZE_FLOOR
+	JEQ REROLL
+	CMA# PLAYER_UP
+	JNE CHECK_L1
+	JSR GAME_OVER
+CHECK_L1:	CMA# PLAYER_LEFT ; checks for player collision
+	JNE CHECK_R1
+	JSR GAME_OVER
+CHECK_R1:	CMA# PLAYER_RIGHT
+	JNE CHECK_D1
+	JSR GAME_OVER
+CHECK_D1:	CMA# PLAYER_DOWN
+	JNE DONE_C1
+	JSR GAME_OVER
+DONE_C1:	STX CURRENTLOC ; stores new location information
+	POPX
+	INC+ E1X
+	PSHX
+	JMP SUCCESS ; jumps to finish moving enemy after no collision
+CHECK2:	CMA# 2
+	JNE CHECK3
+	LDX CURRENTLOC
+	ADX# 38
+	INB+ $100
+	CMA# MAZE_WALL
+	JEQ REROLL
+	CMA# MAZE_FLOOR
+	JEQ REROLL
+	CMA# PLAYER_UP
+	JNE CHECK_L2
+	JSR GAME_OVER
+CHECK_L2:	CMA# PLAYER_LEFT
+	JNE CHECK_R2
+	JSR GAME_OVER
+CHECK_R2:	CMA# PLAYER_RIGHT
+	JNE CHECK_D2
+	JSR GAME_OVER
+CHECK_D2:	CMA# PLAYER_DOWN
+	JNE DONE_C2
+	JSR GAME_OVER
+DONE_C2:	STX CURRENTLOC
+	POPX
+	INC+ E1Y
+	PSHX
+	JMP SUCCESS ; jumps to finish moving enemy after no collision
+CHECK3:	LDX CURRENTLOC
+	SBX# 1
+	INB+ $100
+	CMA# MAZE_WALL ; checks for collison with walls
+	JEQ REROLL
+	CMA# MAZE_FLOOR
+	JEQ REROLL
+	CMA# PLAYER_UP
+	JNE CHECK_L3
+	JSR GAME_OVER
+CHECK_L3:	CMA# PLAYER_LEFT ; checks for player collision
+	JNE CHECK_R3
+	JSR GAME_OVER
+CHECK_R3:	CMA# PLAYER_RIGHT
+	JNE CHECK_D3
+	JSR GAME_OVER
+CHECK_D3:	CMA# PLAYER_DOWN
+	JNE DONE_C3
+	JSR GAME_OVER
+DONE_C3:	STX CURRENTLOC ; stores updated enemy location
+	POPX
+	DEC+ E1X
+	PSHX
+SUCCESS:	LDX CURRENTLOC ;procedure called for valid movement
+	LDA# ENEMY_CHAR
+	OUTB+ $100 ; outputs the character at the new location
+	LDA# ENABLE_AND_RESET ; resets the timer
+	OUTB TIM_CNTL
+	POPX
+	AOC# 4
+	JNE MOVE_LOOP ; repeats for all enemies
+	LDA SCORE ; display score
+	MOD# 10
+	ADA# $30
+	OUTB $11D
+	LDA SCORE
+	MOD# 100
+	DIV# 10
+	ADA# $30
+	OUTB $11C
+	LDA SCORE
+	MOD# 1000
+	DIV# 100
+	ADA# $30
+	OUTB $11B
+TIMER_END:	POPX
+	POPA
+	IRTN ;return after movement
+
+CURRENTLOC:	.WORD 0 ;store current location
+
+DEATH_ANIM:	LDA ANIMATION_PROGRESS ;runs on player death
+	CMA# 0
+	JNE ANIM_1
+	PSH# PLAYER_UP
+	JMP SHOW_ANIM
+ANIM_1:	CMA# 1
+	JNE ANIM_2
+	PSH# PLAYER_RIGHT
+	JMP SHOW_ANIM
+ANIM_2:	CMA# 2
+	JNE ANIM_3
+	PSH# PLAYER_DOWN	
+	JMP SHOW_ANIM
+ANIM_3:	CMA# 3
+	JNE ANIM_4
+	LDA# 2
+	CMA NUM_ROT
+	JEQ LAST_ROT
+	LDA# 0
+	STA ANIMATION_PROGRESS
+	INC NUM_ROT
+LAST_ROT:	PSH# PLAYER_LEFT ;
+	JMP SHOW_ANIM
+ANIM_4:	CMA# 4 ; displays an “explosion”
+	JNE ANIM_5
+	DEC PLAYERX
+	DEC PLAYERY
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	INC PLAYERX
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	INC PLAYERX
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	INC PLAYERY
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	DEC PLAYERX
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	DEC PLAYERX
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	INC PLAYERY
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	INC PLAYERX
+	PSH# EXPLOSION
+	JSR SHOW_CHAR
+	ADS# 1
+	INC PLAYERX
+	PSH# EXPLOSION
+SHOW_ANIM:	JSR SHOW_CHAR
+	ADS# 1
+	INC ANIMATION_PROGRESS
+	RTN
+ANIM_5:	HLT ; animation is over and ends the game
+
+GAME_OVER:	INC ISOVER ; indicates the game is over
+	LDA# 37 ; moves the enemies offscreen
+	STA E1X
+	STA E2X
+	STA E3X
+	STA E4X
+	LDA# INTERRUPT_DIS ; disables keyboard interrupts
+	OUTB KBD_CNTL
+	RTN
+
+
+SHOW_ENEMS:	BGN# 0
+	PSHA
+	PSHX
+	LDA NUM_ENEM
+	CMA# 0
+	JEQ END
+	PSH E1X
+	PSH E1Y
+	JSR SHOW_ENEM ;first enemy spawned
+	ADS# 2
+	CMA# 1
+	JEQ END
+	PSH E2X
+	PSH E2Y
+	JSR SHOW_ENEM ;second enemy spawned
+	ADS# 2
+	CMA# 2
+	JEQ END
+	PSH E3X
+	PSH E3Y
+	JSR SHOW_ENEM ;third enemy spawned
+	ADS# 2
+	CMA# 3
+	JEQ END
+	PSH E4X
+	PSH E4Y
+	JSR SHOW_ENEM ;fourth enemy spawned
+	ADS# 2
+END:	POPX
+	POPA
+	FIN# 0
+	RTN
+
+	.EQU CURRENTX, 3
+	.EQU CURRENTY, 2
+
+SHOW_ENEM:	BGN# 0
+	PSHA
+	PSHX
+	LDA ! CURRENTY ; calculates the position of the enemy
+	MUL# 38
+	ADA ! CURRENTX
+	STA CURRENTPOS
+	LDX CURRENTPOS
+	LDA# ENEMY_CHAR
+	OUTB+ $100 ; displays the enemy at the position
+	POPX
+	POPA
+	FIN# 0
+	RTN
+CURRENTPOS:	.WORD 0
+
+	.EQU CHAR_ORIENTAION, 2
+
+SHOW_CHAR:	BGN# 0 ;spawn the player
+	PSHA
+	PSHX
+	LDA PLAYERY ; calculates the player position
+	MUL# 38
+	ADA PLAYERX
+	STA PLAYERPOS
+	LDX PLAYERPOS
+	LDA ! CHAR_ORIENTAION ; displays the player in a specific orientation at the location
+	OUTB+ $100
+	POPX
+	POPA
+	FIN# 0
+	RTN
+	
+
+MOVE_RIGHT:	BGN# 0
+	PSHA
+	PSHX
+	PSH# EMPTY
+	JSR SHOW_CHAR ; erases the char at the old location
+	ADS# 1
+	LDA PLAYERX ; moves the player x to the right
+	ADA# 1
+	STA PLAYERX ; calculates the new position
+	LDA PLAYERY
+	MUL# 38
+	ADA PLAYERX
+	STA PLAYERPOS
+	LDX PLAYERPOS
+	INB+ $100 ; takes in the char at the new location
+	CMA# PELLETS
+	JNE CHECK_E_R
+	INC SCORE
+CHECK_E_R:	CMA# ENEMY_CHAR ; checks for collision with an enemy
+	JNE CHECK_WR
+	JSR GAME_OVER
+CHECK_WR:	CMA# MAZE_WALL ; checks for collision with a wall or floor
+	JEQ CLEAR_RIGHT
+	CMA# MAZE_FLOOR
+	JNE CONT_RIGHT
+CLEAR_RIGHT:LDA PLAYERX ; updates the player x position
+	SBA# 1
+	STA PLAYERX
+CONT_RIGHT:	PSH# PLAYER_RIGHT ; displays the char at the correct orientation at the new location
+	JSR SHOW_CHAR
+	ADS# 1
+	POPX
+	POPA
+	FIN# 0
+	RTN
+
+MOVE_LEFT:	BGN# 0
+	PSHA
+	PSHX
+	PSH# EMPTY
+	JSR SHOW_CHAR ; erases the char at the old location
+	ADS# 1
+	LDA PLAYERX ; subtracts one from the player x
+	SBA# 1
+	STA PLAYERX
+	LDA PLAYERY ; calculates the new position
+	MUL# 38
+	ADA PLAYERX
+	STA PLAYERPOS
+	LDX PLAYERPOS
+	INB+ $100 ; takes in the current character at the new position
+	CMA# PELLETS ; checks for pellets
+	JNE CHECK_E_L
+	INC SCORE
+CHECK_E_L:	CMA# ENEMY_CHAR ; checks for enemy collision
+	JNE CHECK_WL
+	JSR GAME_OVER
+CHECK_WL:	CMA# MAZE_WALL ; checks for maze wall or floor
+	JEQ CLEAR_LEFT
+	CMA# MAZE_FLOOR
+	JNE CONT_LEFT
+CLEAR_LEFT:	LDA PLAYERX
+	ADA# 1
+	STA PLAYERX
+CONT_LEFT:	PSH# PLAYER_LEFT ; display char at new location
+	JSR SHOW_CHAR
+	ADS# 1
+	POPX
+	POPA
+	FIN# 0
+	RTN
+
+MOVE_UP:	BGN# 0
+	PSHA
+	PSHX
+	PSH# EMPTY ; erase the char at the old location
+	JSR SHOW_CHAR
+	ADS# 1
+	LDA PLAYERX
+	SBA# 38 ; adjust the position
+	STA PLAYERX
+	LDA PLAYERY ; calculate the new position
+	MUL# 38
+	ADA PLAYERX
+	STA PLAYERPOS
+	LDX PLAYERPOS
+	INB+ $100 ; take in the char currently at the new location
+	CMA# PELLETS ; check for pellets
+	JNE CHECK_E_U
+	INC SCORE
+CHECK_E_U:	CMA# ENEMY_CHAR ; check for an enemy char
+	JNE CHECK_WU
+	JSR GAME_OVER
+CHECK_WU:	CMA# MAZE_FLOOR ; check for wall or floor
+	JEQ CLEAR_UP
+	CMA# MAZE_WALL
+	JNE CONT_UP
+CLEAR_UP:	LDA PLAYERX
+	ADA# 38
+	STA PLAYERX
+CONT_UP:	PSH# PLAYER_UP ; print out at the new location
+	JSR SHOW_CHAR ;move up and clear space behind
+	ADS# 1
+	POPX
+	POPA
+	FIN# 0
+	RTN
+
+MOVE_DOWN:	BGN# 0
+	PSHA
+	PSHX
+	PSH# EMPTY ; erase the char at the old location
+	JSR SHOW_CHAR
+	ADS# 1
+	LDA PLAYERX ; adjust the position
+	ADA# 38
+	STA PLAYERX
+	LDA PLAYERY ; calculate the new position
+	MUL# 38
+	ADA PLAYERX
+	STA PLAYERPOS
+	LDX PLAYERPOS
+	INB+ $100 ; take in the character at the new position
+	CMA# PELLETS ; check for pellets
+	JNE CHECK_E_D
+	INC SCORE
+CHECK_E_D:	CMA# ENEMY_CHAR ; check for enemy character
+	JNE CHECK_WD
+	JSR GAME_OVER
+CHECK_WD:	CMA# MAZE_FLOOR ; check for floor or wall
+	JEQ CLEAR_DOWN
+	CMA# MAZE_WALL
+	JNE CONT_DOWN
+CLEAR_DOWN:	LDA PLAYERX
+	SBA# 38
+	STA PLAYERX
+CONT_DOWN:	PSH# PLAYER_DOWN ; show character at new position
+	JSR SHOW_CHAR
+	ADS# 1
+	POPX
+	POPA
+	FIN# 0
+	RTN
+
+KEYBOARD:	INB KBD_DATA ;player moves via keyboard interrupt
+	CMA# LEFT
+	JNE CHECK_R
+	JSR MOVE_LEFT ;move left if true
+CHECK_R:	CMA# RIGHT
+	JNE CHECK_U
+	JSR MOVE_RIGHT ;move right if true
+CHECK_U:	CMA# UP
+	JNE CHECK_D
+	JSR MOVE_UP ;move up if true
+CHECK_D:	CMA# DOWN
+	JNE KEY_END
+	JSR MOVE_DOWN ;move down if true
+KEY_END:	IRTN
+
+SEED:	.WORD 2 ;to generate random values
+PLAYERPOS:	.WORD 0
+PLAYERX:	.WORD 6
+PLAYERY:	.WORD 4
+E1X:	.WORD 1 ;enemies spawn in corners
+E2X:	.WORD 29
+E3X:	.WORD 1
+E4X:	.WORD 29
+E1Y:	.WORD 2
+E2Y:	.WORD 2
+E3Y:	.WORD 9
+E4Y:	.WORD 9
+NUM_ENEM:	.WORD 4
+TIMER:	.WORD 0
+DELAY:	.WORD 20000
+ISOVER:	.WORD 0
+NUM_ROT:	.WORD 1
+SCORE:	.WORD 0
+ANIMATION_PROGRESS:	.WORD 0
+WALL_STR:	.CHAR '                    score: 000        _______________________________       | ......        .....         |       | ___        _       |  . __  |       | |  |  . |_|  _|__  |  . |_| |       | |__|  . |     |       .     |       |       .   ......... ___ . . |       |  __    ...|  .     |      | |       |    ___|__ |   .___|_  ... | |       | ....      |            ___  |       |. __   _|    ...   . . |   | |       ______________________________', WALL_STR_LENGTH ;wall string is printed to display screen before game starts
+
+	.EQU @, $FF8
+	.WORD KEYBOARD
+
+	.EQU @, $FFB
+	.WORD TIMERISR
+	.END
+
+
+
+
+
+

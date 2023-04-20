@@ -1,0 +1,19 @@
+	.EQU KBD_CNTL, $000
+	.EQU KBD_DATA, $001
+	.EQU CRT_DATA, $317
+	.EQU INTERRUPT_ENA, $80
+
+Main:	LDA# INTERRUPT_ENA	; enables interrups
+	OUTB KBD_CNTL
+	SIE
+
+WAIT_LOOP:	JMP WAIT_LOOP	; continously loops until interrupted
+
+KBD_ISR:	INB KBD_DATA	; reads in the character
+	ADA# 2	; adds two to the ascii code
+	OUTB CRT_DATA	; prints out the new character
+INVALID:	HLT
+
+	.EQU @,$FF8
+	.WORD KBD_ISR
+	.END

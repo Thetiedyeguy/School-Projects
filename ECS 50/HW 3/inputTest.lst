@@ -1,0 +1,15 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.              .EQU PUT_NUM,$E00
+  2.              .EQU GET_NUM,$E01
+  3.              
+  4.  000 020E00  LDS# $E00
+  5.  001 412E01  JSR GET_NUM
+  6.  002 042004  STA N
+  7.              
+  8.  003 FFFFFF  HLT
+  9.  004 000000  N: .WORD 0
+ 10.              .END
+
+                     SYMBOL TABLE CONTENTS
+
+000E01 = GET_NUM         000004 = N               000E00 = PUT_NUM         

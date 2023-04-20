@@ -1,0 +1,146 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.              	.EQU LINES, 14
+  2.              	.EQU LINE_LENGTH, 38
+  3.              	.EQU BS, $08
+  4.              	.EQU CRT_DATA, $317
+  5.  000 020E00  	LDS# $E00	; print out text to be flipped
+  6.  001 080118  	PSH# TEXT_LENGTH
+  7.  002 08001B  	PSH# TEXT
+  8.  003 412E05  	JSR $E05
+  9.  004 120002  	ADS# 2
+ 10.  005 702314  LOOP:	INB $314	; take in the x position of the cursor
+ 11.  006 04207F  	STA XPOS
+ 12.  007 702315  	INB $315	; take in the y position of the cursor
+ 13.  008 042080  	STA YPOS
+ 14.  009 140001  	SBA# 1	; subtract one from y to have it based around (0,0)
+ 15.  00A 180026  	MUL# 38	; multiply y by the number of entries per row
+ 16.  00B 10207F  	ADA XPOS	; add x
+ 17.  00C 140001  	SBA# 1	; subtract one to have it based around (0,0)
+ 18.  00D 04207A  	STA CURRENT	; move the value from the acc to the xr
+ 19.  00E 01207A  	LDX CURRENT
+ 20.  00F 704100  	INB+ $100	; take in the current character
+ 21.  010 512081  	STC LETTERS	; store the character
+ 22.  011 000008  	LDA# BS	; delete the current character from the display
+ 23.  012 712317  	OUTB CRT_DATA
+ 24.  013 00207A  	LDA CURRENT
+ 25.  014 21010E  	CMX# 270
+ 26.  015 492005  	JNE LOOP	; jump back to beginning of loop
+ 27.  016 502081  PRINT:	LDC LETTERS	; reprint the letters back to screen in the opposite order
+ 28.  017 712317  	OUTB CRT_DATA
+ 29.  018 60011D  	AOC# 285
+ 30.  019 492016  	JNE PRINT
+ 31.  01A FFFFFF  	HLT
+ 32.  01B 416C6C  TEXT:	.CHAR 'All he could think about was how it would all end. There was still a bit of uncertainty in the equation, but the basics were there for anyone to see. No matter how much he tried to see the positive, it wasnt anywhere to be seen. The end was coming and it wasnt going to be pretty.', TEXT_LENGTH
+      01C 206865
+      01D 20636F
+      01E 756C64
+      01F 207468
+      020 696E6B
+      021 206162
+      022 6F7574
+      023 207761
+      024 732068
+      025 6F7720
+      026 697420
+      027 776F75
+      028 6C6420
+      029 616C6C
+      02A 20656E
+      02B 642E20
+      02C 546865
+      02D 726520
+      02E 776173
+      02F 207374
+      030 696C6C
+      031 206120
+      032 626974
+      033 206F66
+      034 20756E
+      035 636572
+      036 746169
+      037 6E7479
+      038 20696E
+      039 207468
+      03A 652065
+      03B 717561
+      03C 74696F
+      03D 6E2C20
+      03E 627574
+      03F 207468
+      040 652062
+      041 617369
+      042 637320
+      043 776572
+      044 652074
+      045 686572
+      046 652066
+      047 6F7220
+      048 616E79
+      049 6F6E65
+      04A 20746F
+      04B 207365
+      04C 652E20
+      04D 4E6F20
+      04E 6D6174
+      04F 746572
+      050 20686F
+      051 77206D
+      052 756368
+      053 206865
+      054 207472
+      055 696564
+      056 20746F
+      057 207365
+      058 652074
+      059 686520
+      05A 706F73
+      05B 697469
+      05C 76652C
+      05D 206974
+      05E 207761
+      05F 736E74
+      060 20616E
+      061 797768
+      062 657265
+      063 20746F
+      064 206265
+      065 207365
+      066 656E2E
+      067 205468
+      068 652065
+      069 6E6420
+      06A 776173
+      06B 20636F
+      06C 6D696E
+      06D 672061
+      06E 6E6420
+      06F 697420
+      070 776173
+      071 6E7420
+      072 676F69
+      073 6E6720
+      074 746F20
+      075 626520
+      076 707265
+      077 747479
+      078 2E2020
+ 33.  079 000000  CURRENT_XR:	.WORD 0
+ 34.  07A 000000  CURRENT:	.WORD 0
+ 35.  07B 000137  LINE_END:	.WORD $137
+ 36.  07C 000100  LINE_BEG:	.WORD $100
+ 37.  07D 00001B  MIDDLE:	.WORD $01B
+ 38.  07E 000000  TEMP:	.WORD 0
+ 39.  07F 000000  XPOS:	.WORD 0
+ 40.  080 000000  YPOS:	.WORD 0
+ 41.  081 FFFFFFFFFFFFFFFF  LETTERS:	.BLKW $0C
+ 42.              
+ 43.              	.END
+
+                     SYMBOL TABLE CONTENTS
+
+000008 = BS              000317 = CRT_DATA        00007A = CURRENT         
+000079 = CURRENT_XR      000081 = LETTERS         00000E = LINES           
+00007C = LINE_BEG        00007B = LINE_END        000026 = LINE_LENGTH     
+000005 = LOOP            00007D = MIDDLE          000016 = PRINT           
+00007E = TEMP            00001B = TEXT            000118 = TEXT_LENGTH     
+00007F = XPOS            000080 = YPOS            

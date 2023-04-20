@@ -1,0 +1,105 @@
+	LDS# $E00	;First six lines print out a welcome message
+	PSH# WELCOME_LENGTH	;
+	PSH# WELCOME	;
+	JSR PUT_STR	;
+	JSR PUT_NL	;
+	ADS# 2	;
+	PSH ARRAY	;Next three lines push the parameters for load onto the
+	PSH N	;stack
+	PSH# N_LIMIT	;
+	JSR LOAD	;Runs the load subroutine
+	ADS# 3	;Erases the parameters from the stack
+	LDX# 0	;loads Xr to be 0
+	STX MINIMUM	;Stores the Xr to be used as a parameter
+	PSH ARRAY	;Pushes the three parameters onto the stack
+	PSH# MINIMUM	;
+	PSH# N	;
+	JSR MIN	;Runs the Min subroutine
+	ADS# 3	;Erases the parameters from the stack
+	PSH ARRAY	;Pushes the two parmeters onto the stack
+	PSH N	;
+	JSR PRINT	;Runs the Print Subroutine
+	ADS# 2	;Erases the parameters
+	HLT		;Stops the program
+	.EQU AMOUNT, 3	;Sets the Formal parameters
+	.EQU AMOUNT_LIMIT, 2	;
+	.EQU LIST, 4	;
+LOAD:	BGN# 0	;Begins the subroutine
+	PSHA		;Stores the ACC and Xr on the stack
+	PSHX		;
+GET_N:	PSH# N_PROMPT_LENGTH	;Prints out a message prompting the user for the array size
+	PSH# N_PROMPT	;
+	JSR PUT_STR	;
+	ADS# 2	;
+	JSR $E01	;Takes user input into the ACC
+	CMA# 1	;compares the input to 1
+	JLT GET_N	;If  the input is less than one it gets a new one
+	CMA* ! AMOUNT_LIMIT	;If the input is greater than what is allowed it gets a new
+	JGE GET_N	;one
+	STA* ! AMOUNT	;Stores the array size in the parameter AMOUNT
+	LDX* ! AMOUNT	;Loads the XR to be the array size
+	SBX# 1	;subtracts one from the Xr to allow the loop to run proper
+NEXT_INT:	JSR $E01	;Takes in an input
+	STA& ! LIST	;stores that input in list[Xr]
+	SOJ NEXT_INT	;checks is the loop has run n times and jumps if not
+	POPX		;Return the values of the ACC and Xr from the stack
+	POPA		;
+	FIN# 0	;Ends the subroutine
+	RTN		;
+	.EQU NUMBERS, 3	;Sets the fromal parameters for the subroutine
+	.EQU NUMBER_AMOUNT, 2;
+PRINT:	BGN# 0	;Starts the subroutine
+	PSHA		;pushes the ACC and XR onto the stack to save their values
+	PSHX		;
+	LDX* ! NUMBER_AMOUNT	;loads the XR to be the array size
+	SBX# 1	;subtracts one from XR for the loop
+PRINT_NEXT:	LDA& ! NUMBERS	;Loads the ACC to be array[XR]
+	JSR $E00	;prints out the ACC
+	SOJ PRINT_NEXT	;compares the XR to zero and jumps to beggining of loop
+	POPX		;Returns the value of the ACC and XR
+	POPA		;
+	FIN# 0	;Ends the subroutine
+	RTN		;
+	.EQU DATA, 4	;Sets the formal parameters
+	.EQU BEGIN, 3	;
+	.EQU END, 2	;
+MIN:	BGN# 0	;Begins the subroutine
+	PSHA		;Stores the ACC and XR
+	PSHX		;
+	LDX* ! BEGIN	;Loads XR to be the value stored in the BEGIN param
+	LDA* ! END	;Loads ACC to be the value stored in the END param
+	STA UPPER	;Stores the ACC\END param in UPPER
+	LDA& ! DATA	;Loads the ACC to be DATA[XR]
+	STA SMALLEST	;stores the ACC in SMALLEST
+WHILE:	LDA& ! DATA	;Loads the ACC to be DATA[XR]
+	CMA SMALLEST	;Compares the ACC to the current smallest
+	JGE LOOP_CHECK	;jumps to LOOP_CHECK if the ACC is not the smallest
+	STA SMALLEST	;Stores the ACC and XR if the current ACC is the smallest
+	STX SMALLEST_X	;so far
+LOOP_CHECK:	AOC UPPER	;Checks if the XR++ is equal to UPPER otherwise the loop
+	JLT WHILE	;continues
+	LDX* ! BEGIN	;Load XR to be the first available value
+	LDA& ! DATA	;loads the ACC to be the first available value in DATA
+	LDX SMALLEST_X	;Loads the XR to be the one matching to the smalles data
+	STA& ! DATA	;Stores the first available data value in smallest spot
+	LDX* ! BEGIN	;loads X to be the first available value
+	LDA SMALLEST	;Loads ACC to be the smallest value
+	STA& ! DATA	;stores the ACC in the first available spot
+	POPX		;Return the values of X and the ACC
+	POPA		;
+	FIN# 0	;Stop the subroutine
+	RTN		;
+WELCOME:	.CHAR '*** Welcome to the SORTER ***', WELCOME_LENGTH;Welcome message
+N_PROMPT:	.CHAR 'Enter the number of elements', N_PROMPT_LENGTH;Prompt message
+	.EQU PUT_STR, $E05	;Values used to print strings
+	.EQU PUT_NL, $E06	;
+UPPER:	.WORD 0	;
+EMPTY:	.WORD 0	;
+EMPTY2:	.WORD 0	;
+SMALLEST:	.WORD 0	;
+SMALLEST_X:	.WORD 0	;
+N_LIMIT:	.WORD 11	;
+N:	.WORD 0	;
+MINIMUM:	.WORD $000	;
+ARRAY:	.BLKW 10	;
+	.END		;

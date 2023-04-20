@@ -1,0 +1,43 @@
+	.EQU LINES, 14
+	.EQU LINE_LENGTH, 38
+	.EQU BS, $08
+	.EQU CRT_DATA, $317
+	LDS# $E00	; print out text to be flipped
+	PSH# TEXT_LENGTH
+	PSH# TEXT
+	JSR $E05
+	ADS# 2
+LOOP:	INB $314	; take in the x position of the cursor
+	STA XPOS
+	INB $315	; take in the y position of the cursor
+	STA YPOS
+	SBA# 1	; subtract one from y to have it based around (0,0)
+	MUL# 38	; multiply y by the number of entries per row
+	ADA XPOS	; add x
+	SBA# 1	; subtract one to have it based around (0,0)
+	STA CURRENT	; move the value from the acc to the xr
+	LDX CURRENT
+	INB+ $100	; take in the current character
+	STC LETTERS	; store the character
+	LDA# BS	; delete the current character from the display
+	OUTB CRT_DATA
+	LDA CURRENT
+	CMX# 270
+	JNE LOOP	; jump back to beginning of loop
+PRINT:	LDC LETTERS	; reprint the letters back to screen in the opposite order
+	OUTB CRT_DATA
+	AOC# 285
+	JNE PRINT
+	HLT
+TEXT:	.CHAR 'All he could think about was how it would all end. There was still a bit of uncertainty in the equation, but the basics were there for anyone to see. No matter how much he tried to see the positive, it wasnt anywhere to be seen. The end was coming and it wasnt going to be pretty.', TEXT_LENGTH
+CURRENT_XR:	.WORD 0
+CURRENT:	.WORD 0
+LINE_END:	.WORD $137
+LINE_BEG:	.WORD $100
+MIDDLE:	.WORD $01B
+TEMP:	.WORD 0
+XPOS:	.WORD 0
+YPOS:	.WORD 0
+LETTERS:	.BLKW $0C
+
+	.END
