@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "numPlayers": 4
+  },
+  "teamStats": [
+    {
+      "playerOne": 0,
+      "playerTwo": 1,
+      "winPercentage": 55.11
+    },
+    {
+      "playerOne": 0,
+      "playerTwo": 2,
+      "winPercentage": 29.748
+    },
+    {
+      "playerOne": 0,
+      "playerTwo": 3,
+      "winPercentage": 14.872
+    },
+    {
+      "playerOne": 1,
+      "playerTwo": 2,
+      "winPercentage": 53.724
+    },
+    {
+      "playerOne": 1,
+      "playerTwo": 3,
+      "winPercentage": 95.86
+    },
+    {
+      "playerOne": 2,
+      "playerTwo": 3,
+      "winPercentage": 65.498
+    }
+  ]
+}

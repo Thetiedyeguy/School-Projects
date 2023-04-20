@@ -1,0 +1,43 @@
+{
+  "Op01": {
+    "key": 3019,
+    "operation": "insert"
+  },
+  "Op02": {
+    "key": 1500,
+    "operation": "insert"
+  },
+  "Op03": {
+    "key": 1334,
+    "operation": "insert"
+  },
+  "Op04": {
+    "key": 4119,
+    "operation": "insert"
+  },
+  "Op05": {
+    "operation": "removeMin"
+  },
+  "Op06": {
+    "key": 2199,
+    "operation": "insert"
+  },
+  "Op07": {
+    "operation": "removeMin"
+  },
+  "Op08": {
+    "operation": "removeMin"
+  },
+  "Op09": {
+    "key": 4180,
+    "operation": "insert"
+  },
+  "Op10": {
+    "key": 4586,
+    "operation": "insert"
+  },
+  "metadata": {
+    "maxHeapSize": 4,
+    "numOperations": 10
+  }
+}
